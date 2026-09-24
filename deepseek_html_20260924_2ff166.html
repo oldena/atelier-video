@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier Vidéo</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        background: #fafafa; color: #1a1a1a; padding: 1.5rem 1rem 4rem;
+        max-width: 800px; margin: 0 auto; font-size: 15px; line-height: 1.5;
+    }
+    h1 { font-size: 1.5rem; text-align: center; margin-bottom: 0.3rem; }
+    .sub { text-align: center; color: #777; font-size: 0.85rem; margin-bottom: 1.5rem; font-style: italic; }
+    .panel { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; }
+    .panel.ok { border-color: #2d8a4e; }
+    input, textarea, select, button { font-family: inherit; font-size: 15px; }
+    .key-input {
+        width: 100%; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid #e5e5e5;
+        background: #fafafa; margin-bottom: 0.6rem; font-family: monospace; font-size: 0.85rem;
+    }
+    .btn {
+        width: 100%; padding: 0.9rem; border-radius: 8px; border: none;
+        background: #1a1a1a; color: #fff; font-weight: 600; cursor: pointer;
+        margin-bottom: 0.6rem; transition: opacity 0.15s;
+    }
+    .btn:active { opacity: 0.7; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .status-line {
+        font-size: 0.8rem; padding: 0.6rem 0.9rem; border-radius: 6px;
+        background: #f5f5f5; color: #777; display: flex; gap: 0.5rem; align-items: center;
+    }
+    .status-line.ok { background: #e3f5e9; color: #2d8a4e; font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; }
+    .status-line.ok .dot { background: #2d8a4e; }
+    .upload {
+        border: 2px dashed #e5e5e5; border-radius: 12px; padding: 2rem 1rem;
+        text-align: center; cursor: pointer; background: #fff; margin-bottom: 1rem;
+        transition: all 0.15s;
+    }
+    .upload:hover { border-color: #1a1a1a; background: #fafafa; }
+    .upload input { display: none; }
+    .upload-icon { font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem; }
+    .upload-text { font-size: 1rem; margin-bottom: 0.2rem; }
+    .upload-hint { font-size: 0.75rem; color: #999; }
+    .grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+        gap: 0.5rem; margin-bottom: 1rem;
+    }
+    .thumb { position: relative; aspect-ratio: 9/16; border-radius: 8px; overflow: hidden; border: 1px solid #e5e5e5; background: #eee; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb .x {
+        position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6);
+        color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%;
+        cursor: pointer; font-size: 12px; line-height: 1;
+    }
+    .title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #777; font-weight: 600; margin-bottom: 0.6rem; }
+    textarea {
+        width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #e5e5e5;
+        background: #fafafa; min-height: 80px; resize: vertical; margin-bottom: 0.6rem;
+    }
+    .effects {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.5rem;
+    }
+    .effect {
+        padding: 0.7rem 0.8rem; border-radius: 8px; border: 1px solid #e5e5e5;
+        background: #f7f7f7; cursor: pointer; transition: all 0.15s;
+        display: flex; gap: 0.5rem; align-items: flex-start;
+    }
+    .effect:hover { border-color: #1a1a1a; }
+    .effect.selected { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .effect .emoji { font-size: 1.2rem; }
+    .effect .name { font-size: 0.8rem; font-weight: 600; line-height: 1.2; }
+    .effect .desc { font-size: 0.65rem; opacity: 0.7; margin-top: 0.15rem; line-height: 1.2; }
+    .row { margin-bottom: 0.8rem; }
+    .row label { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #777; font-weight: 600; margin-bottom: 0.3rem; }
+    .row select { width: 100%; padding: 0.7rem 0.9rem; border-radius: 8px; border: 1px solid #e5e5e5; background: #fafafa; }
+    .queue-item {
+        display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0.8rem;
+        border: 1px solid #e5e5e5; border-radius: 8px; margin-bottom: 0.4rem;
+        background: #fff; font-size: 0.82rem;
+    }
+    .queue-item.pending { opacity: 0.55; }
+    .queue-item.processing { border-color: #1a1a1a; }
+    .queue-item.done { border-color: #2d8a4e; }
+    .queue-item.failed { border-color: #c0392b; }
+    .q-name { flex: 1; }
+    .q-status { font-size: 0.72rem; color: #777; text-align: right; max-width: 60%; }
+    .gallery {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.6rem;
+    }
+    .gallery video { width: 100%; border-radius: 10px; background: #000; display: block; }
+    .gallery .cap { font-size: 0.7rem; color: #777; padding: 0.3rem 0; }
+    .toast {
+        position: fixed; top: 1rem; left: 50%; transform: translateX(-50%) translateY(-100px);
+        background: #1a1a1a; color: #fff; padding: 0.8rem 1.2rem; border-radius: 10px;
+        font-size: 0.85rem; z-index: 999; opacity: 0; transition: all 0.3s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.ok { background: #2d8a4e; }
+    .toast.err { background: #c0392b; }
+    .toast.warn { background: #d4a017; }
+    .debug {
+        margin-top: 1rem; padding: 0.8rem; border-radius: 8px;
+        background: #1a1a1a; color: #0f0; font-family: monospace; font-size: 0.7rem;
+        max-height: 200px; overflow-y: auto; white-space: pre-wrap;
+        display: none;
+    }
+    .debug.show { display: block; }
+</style>
+</head>
+<body>
+
+<h1>🎬 Atelier Vidéo</h1>
+<p class="sub">5 modèles métiers — YouTube · TikTok · Avatar · Caméra</p>
+
+<div class="panel" id="apiPanel">
+    <input type="password" class="key-input" id="apiKey" placeholder="Collez votre clé API (sk-...)" autocomplete="off">
+    <button class="btn" id="saveKeyBtn" type="button">💾 Enregistrer la clé</button>
+    <div class="status-line" id="apiStatus">
+        <span class="dot"></span>
+        <span id="apiStatusText">Aucune clé enregistrée</span>
+    </div>
+</div>
+
+<div class="upload" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*" multiple>
+    <div class="upload-icon">＋</div>
+    <div class="upload-text">Ajoutez vos images</div>
+    <div class="upload-hint">Cliquez ici ou déposez vos photos</div>
+</div>
+
+<div class="grid" id="thumbs"></div>
+
+<div class="panel">
+    <div class="title">✍️ Votre vision (optionnel)</div>
+    <textarea id="mainPrompt" placeholder="Décrivez ce que vous voulez. Laissez vide si le modèle suffit."></textarea>
+</div>
+
+<div class="panel">
+    <div class="title">🎨 Modèle</div>
+    <div class="effects" id="effectsGrid"></div>
+</div>
+
+<div class="panel">
+    <div class="title">⚙️ Réglages</div>
+    <div class="row">
+        <label>Durée</label>
+        <select id="durationSelect">
+            <option value="121" selected>5 secondes (recommandé)</option>
+            <option value="153">6,4 secondes</option>
+            <option value="241">10 secondes</option>
+        </select>
+    </div>
+    <div class="row">
+        <label>Cadrage</label>
+        <select id="framingSelect">
+            <option value="random">Aléatoire</option>
+            <option value="close">Très serré</option>
+            <option value="medium">Moyen</option>
+            <option value="wide">Large</option>
+        </select>
+    </div>
+    <div class="row">
+        <label>Intensité du mouvement</label>
+        <select id="intensitySelect">
+            <option value="random">Aléatoire</option>
+            <option value="subtle">Subtile</option>
+            <option value="moderate">Modérée</option>
+            <option value="strong">Forte</option>
+        </select>
+    </div>
+</div>
+
+<button class="btn" id="generateBtn" disabled>Créer les vidéos</button>
+<button class="btn" id="stopBtn" style="display:none; background:#c0392b;">⏹ Arrêter</button>
+
+<div id="queue"></div>
+<div id="gallery" style="margin-top:1.5rem;"></div>
+
+<div class="debug" id="debug"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_BASE = 'https://apihub.agnes-ai.com/v1';
+var POLL_BASE = 'https://apihub.agnes-ai.com/agnesapi';
+var MODEL_VIDEO = 'agnes-video-v2.0';
+var FRAME_RATE = 24;
+var CREATE_INTERVAL_MIN = 62000;
+var KEY_STORE = 'agnes_api_key';
+var MAX_IMAGE_WIDTH = 1280;
+
+var EFFECTS = [
+    { id: 5, cat: '📱 Réseaux Sociaux', emoji: '📱', name: 'Pub TikTok/Reels',
+      desc: 'Hook visuel, texte animé, format vertical',
+      prompt: 'social media advertisement, vertical 9:16 format, strong visual hook, dynamic text overlays, vibrant colors, energetic pace, attention-grabbing. Preserve the exact subject identity, face and composition.' },
+    { id: 28, cat: '🧑‍🎨 Avatar', emoji: '🧑‍🎨', name: 'Avatar Créateur',
+      desc: 'Transforme la photo en avatar animé stylisé',
+      prompt: 'stylized animated avatar, Pixar-like 3D character design, expressive eyes, smooth skin, friendly smile, subtle idle animation, clean gradient background, cinematic soft lighting. Keep subject recognizable.' },
+    { id: 61, cat: '🎥 Caméra', emoji: '🌀', name: 'Dolly Zoom',
+      desc: 'Effet Vertigo Hitchcock, distorsion de perspective',
+      prompt: 'dolly zoom effect, Hitchcock Vertigo shot, camera pushes in while zooming out, background perspective distorts, subject stays same size, cinematic. Preserve the exact subject identity.' },
+    { id: 62, cat: '🎥 Caméra', emoji: '🔄', name: 'Orbite 360°',
+      desc: 'Caméra qui tourne autour du sujet',
+      prompt: '360 degree orbit shot around the subject, camera smoothly circles, parallax depth, cinematic movement, subject centered and in focus. Preserve the exact subject identity.' },
+    { id: 63, cat: '🎥 Caméra', emoji: '🚁', name: 'Drone Aérien',
+      desc: 'Vue du ciel, survol, révélation de paysage',
+      prompt: 'aerial drone shot, camera rises and flies over the subject, revealing the landscape, smooth cinematic movement, sweeping reveal. Preserve the exact subject identity.' }
+];
+
+var state = {
+    images: [],
+    selected: null,
+    queue: [],
+    running: false,
+    stop: false,
+    completed: 0,
+    failed: 0,
+    duration: 121,
+    framing: 'random',
+    intensity: 'random'
+};
+
+function $(id) { return document.getElementById(id); }
+
+function debug(msg) {
+    var d = $('debug');
+    d.classList.add('show');
+    d.textContent += msg + '\n';
+    d.scrollTop = d.scrollHeight;
+}
+
+function toast(msg, type) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (type || '');
+    setTimeout(function () { t.className = 'toast'; }, 2500);
+}
+
+function getKey() {
+    try { return (localStorage.getItem(KEY_STORE) || '').trim(); }
+    catch (e) { return ''; }
+}
+
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+function saveKey() {
+    var k = $('apiKey').value.trim();
+    if (!k) {
+        try { localStorage.removeItem(KEY_STORE); } catch (e) {}
+        toast('Clé supprimée', 'warn');
+        refreshKeyUI();
+        return;
+    }
+    try {
+        localStorage.setItem(KEY_STORE, k);
+        toast('✓ Clé enregistrée', 'ok');
+        refreshKeyUI();
+    } catch (e) {
+        toast('Erreur d\'enregistrement', 'err');
+    }
+}
+
+function refreshKeyUI() {
+    var k = getKey();
+    var panel = $('apiPanel');
+    var status = $('apiStatus');
+    var txt = $('apiStatusText');
+    if (k) {
+        panel.className = 'panel ok';
+        status.className = 'status-line ok';
+        txt.textContent = 'Clé active · ' + k.slice(0, 6) + '…' + k.slice(-4);
+        if (!$('apiKey').value) $('apiKey').value = k;
+    } else {
+        panel.className = 'panel';
+        status.className = 'status-line';
+        txt.textContent = 'Aucune clé enregistrée';
+    }
+    refreshBtn();
+}
+
+function fileToDataURI(file) {
+    return new Promise(function (res, rej) {
+        var r = new FileReader();
+        r.onload = function (e) { res(e.target.result); };
+        r.onerror = rej;
+        r.readAsDataURL(file);
+    });
+}
+
+function compressImage(dataURI, maxWidth) {
+    return new Promise(function (res) {
+        var img = new Image();
+        img.onload = function () {
+            try {
+                var ratio = img.height / img.width;
+                var w = Math.min(img.width, maxWidth);
+                var h = Math.round(w * ratio);
+                var c = document.createElement('canvas');
+                c.width = w;
+                c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0, w, h);
+                res(c.toDataURL('image/jpeg', 0.85));
+            } catch (e) { res(dataURI); }
+        };
+        img.onerror = function () { res(dataURI); };
+        img.src = dataURI;
+    });
+}
+
+function makeThumb(dataURI) {
+    return compressImage(dataURI, 200);
+}
+
+function handleFiles(files) {
+    var arr = Array.prototype.slice.call(files).filter(function (f) {
+        return f.type.indexOf('image/') === 0;
+    });
+    if (!arr.length) { toast('Aucune image valide', 'warn'); return; }
+
+    toast('Chargement de ' + arr.length + ' image(s)…', '');
+    var done = 0;
+    arr.forEach(function (f) {
+        fileToDataURI(f)
+            .then(function (full) {
+                return compressImage(full, MAX_IMAGE_WIDTH).then(function (compressed) {
+                    return makeThumb(compressed).then(function (thumb) {
+                        state.images.push({
+                            id: Date.now() + Math.random(),
+                            name: f.name,
+                            dataUri: compressed,
+                            thumb: thumb
+                        });
+                    });
+                });
+            })
+            .then(function () {
+                done++;
+                renderThumbs();
+                if (done === arr.length) {
+                    toast('✓ ' + state.images.length + ' image(s) prêtes', 'ok');
+                    refreshBtn();
+                }
+            })
+            .catch(function (e) {
+                debug('Erreur image : ' + e.message);
+                done++;
+            });
+    });
+}
+
+function renderThumbs() {
+    var g = $('thumbs');
+    g.innerHTML = '';
+    state.images.forEach(function (img) {
+        var div = document.createElement('div');
+        div.className = 'thumb';
+        div.innerHTML = '<img src="' + img.thumb + '"><button class="x">✕</button>';
+        div.querySelector('.x').onclick = function () {
+            state.images = state.images.filter(function (i) { return i.id !== img.id; });
+            renderThumbs();
+            refreshBtn();
+        };
+        g.appendChild(div);
+    });
+}
+
+function renderEffects() {
+    var g = $('effectsGrid');
+    g.innerHTML = '';
+    EFFECTS.forEach(function (e) {
+        var d = document.createElement('div');
+        d.className = 'effect' + (state.selected && state.selected.id === e.id ? ' selected' : '');
+        d.innerHTML = '<div class="emoji">' + e.emoji + '</div>' +
+            '<div><div class="name">' + e.name + '</div>' +
+            '<div class="desc">' + e.desc + '</div></div>';
+        d.onclick = function () {
+            state.selected = (state.selected && state.selected.id === e.id) ? null : e;
+            renderEffects();
+        };
+        g.appendChild(d);
+    });
+}
+
+function buildPrompt() {
+    var parts = [];
+    parts.push('Animate this exact image as starting frame. Subject must remain IDENTICAL: same face, same clothing, same identity.');
+    if (state.selected) parts.push(state.selected.prompt);
+    var user = $('mainPrompt').value.trim();
+    if (user) parts.push(user);
+    if (state.framing !== 'random') {
+        var fr = { close: 'extreme close-up', medium: 'medium shot, waist up', wide: 'wide shot' };
+        parts.push(fr[state.framing]);
+    }
+    if (state.intensity !== 'random') {
+        var it = { subtle: 'very subtle movement', moderate: 'moderate movement', strong: 'strong dynamic movement' };
+        parts.push(it[state.intensity]);
+    }
+    parts.push('Portrait 9:16, 24fps, no text, no watermarks.');
+    return parts.join('. ');
+}
+
+// ═══════════ ANTI-CACHE FETCH ═══════════
+function apiFetch(url, opts) {
+    opts = opts || {};
+    opts.cache = 'no-store';
+    opts.headers = opts.headers || {};
+    opts.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    opts.headers['Pragma'] = 'no-cache';
+    return fetch(url, opts);
+}
+
+function createTask(imageDataUri, prompt) {
+    return apiFetch(API_BASE + '/videos', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + getKey(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: MODEL_VIDEO,
+            prompt: prompt,
+            image: imageDataUri,
+            num_frames: state.duration,
+            frame_rate: FRAME_RATE
+        })
+    }).then(function (r) {
+        if (!r.ok) {
+            return r.text().then(function (t) {
+                throw new Error('HTTP ' + r.status + ' — ' + t.slice(0, 200));
+            });
+        }
+        return r.json();
+    }).then(function (d) {
+        var id = d.video_id || d.id || d.task_id;
+        if (!id) throw new Error('Pas de video_id dans la réponse');
+        debug('→ Tâche créée : ' + String(id).slice(0, 40));
+        return id;
+    });
+}
+
+function pollTask(videoId, onProgress) {
+    var attempts = 0;
+    var lastStatus = null;
+
+    function step() {
+        if (state.stop) throw new Error('Arrêt demandé');
+        if (attempts++ > 120) throw new Error('Délai maximal dépassé');
+
+        // ANTI-CACHE : timestamp unique à chaque appel
+        var url = POLL_BASE + '?video_id=' + encodeURIComponent(videoId) +
+                  '&model_name=' + encodeURIComponent(MODEL_VIDEO) +
+                  '&_t=' + Date.now();
+
+        return apiFetch(url, {
+            headers: { 'Authorization': 'Bearer ' + getKey() }
+        }).then(function (r) {
+            if (!r.ok) {
+                return r.text().then(function (t) {
+                    throw new Error('Poll HTTP ' + r.status + ' — ' + t.slice(0, 200));
+                });
+            }
+            return r.json();
+        }).then(function (d) {
+            var st = d.status || 'unknown';
+            var pr = d.progress || 0;
+
+            // Log toutes les réponses qui changent
+            if (st !== lastStatus) {
+                debug('Poll #' + attempts + ' → status: ' + st + ', progress: ' + pr);
+                lastStatus = st;
+            }
+
+            onProgress('En cours — ' + pr + '%');
+
+            if (st === 'completed' || st === 'succeeded' || st === 'done' || st === 'success') {
+                var u = (d.metadata && d.metadata.url) || d.url || (d.output && d.output.url) ||
+                        (d.data && d.data.url) || (d.result && d.result.url);
+                if (!u) {
+                    debug('⚠ Terminé mais pas d\'URL. Réponse : ' + JSON.stringify(d).slice(0, 500));
+                    throw new Error('Vidéo terminée mais URL introuvable');
+                }
+                debug('✓ VIDÉO PRÊTE : ' + u);
+                return u;
+            }
+            if (st === 'failed' || st === 'error' || st === 'cancelled') {
+                debug('✗ ÉCHEC Agnes. Réponse : ' + JSON.stringify(d).slice(0, 500));
+                throw new Error('Échec Agnes : ' + (d.message || d.error || st));
+            }
+
+            return sleep(8000).then(step);
+        });
+    }
+    return step();
+}
+
+function renderQueue() {
+    var q = $('queue');
+    q.innerHTML = '';
+    state.queue.forEach(function (item) {
+        var d = document.createElement('div');
+        d.className = 'queue-item ' + item.status;
+        var icon = '○';
+        if (item.status === 'processing') icon = '◐';
+        if (item.status === 'done') icon = '●';
+        if (item.status === 'failed') icon = '✕';
+        d.innerHTML = '<span>' + icon + '</span>' +
+            '<span class="q-name">Image ' + (item.index + 1) + '</span>' +
+            '<span class="q-status">' + (item.progress || item.status) + '</span>';
+        q.appendChild(d);
+    });
+    var total = state.queue.length;
+    var done = state.completed + state.failed;
+    if (total > 0) {
+        var summary = document.createElement('div');
+        summary.style = 'text-align:center;padding:0.5rem;color:#777;font-size:0.8rem;';
+        summary.textContent = done + ' / ' + total + ' vidéos';
+        q.appendChild(summary);
+    }
+}
+
+function addGallery(url, label) {
+    var g = $('gallery');
+    if (!g.querySelector('.title')) {
+        var t = document.createElement('div');
+        t.className = 'title';
+        t.textContent = 'Vidéos générées';
+        g.appendChild(t);
+    }
+    var grid = g.querySelector('.gallery');
+    if (!grid) {
+        grid = document.createElement('div');
+        grid.className = 'gallery';
+        g.appendChild(grid);
+    }
+    var wrap = document.createElement('div');
+    var v = document.createElement('video');
+    v.src = url;
+    v.controls = true;
+    v.muted = true;
+    v.playsInline = true;
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.textContent = label;
+    wrap.appendChild(v);
+    wrap.appendChild(cap);
+    grid.appendChild(wrap);
+}
+
+function refreshBtn() {
+    var b = $('generateBtn');
+    var hasImg = state.images.length > 0;
+    var hasKey = !!getKey();
+    b.disabled = !hasImg || !hasKey || state.running;
+    if (state.running) b.textContent = 'Création… (' + (state.completed + state.failed) + '/' + state.queue.length + ')';
+    else if (!hasKey) b.textContent = 'Ajoutez votre clé API';
+    else if (!hasImg) b.textContent = 'Ajoutez des images';
+    else b.textContent = 'Créer ' + state.images.length + ' vidéo' + (state.images.length > 1 ? 's' : '');
+}
+
+function startGeneration() {
+    if (state.running || !state.images.length || !getKey()) return;
+
+    state.running = true;
+    state.stop = false;
+    state.completed = 0;
+    state.failed = 0;
+    state.queue = state.images.map(function (img, i) {
+        return { index: i, image: img, status: 'pending', progress: null, videoId: null, videoUrl: null };
+    });
+    $('gallery').innerHTML = '';
+    $('stopBtn').style.display = 'block';
+    $('debug').textContent = '';
+    $('debug').classList.add('show');
+    refreshBtn();
+
+    var prompt = buildPrompt();
+    debug('═══ DÉMARRAGE ═══');
+    debug('Prompt : ' + prompt.slice(0, 200) + '…');
+    debug('Images : ' + state.images.length);
+
+    function createOne(i) {
+        if (state.stop) return Promise.resolve();
+        if (i >= state.queue.length) return Promise.resolve();
+        var item = state.queue[i];
+        item.status = 'processing';
+        item.progress = 'Création…';
+        renderQueue();
+        debug('── Image ' + (i + 1) + ' ──');
+
+        return createTask(item.image.dataUri, prompt).then(function (vid) {
+            item.videoId = vid;
+            item.progress = 'En cours';
+            renderQueue();
+            return pollTask(vid, function (prog) {
+                item.progress = prog;
+                renderQueue();
+            }).then(function (url) {
+                item.status = 'done';
+                item.progress = 'Terminé';
+                item.videoUrl = url;
+                state.completed++;
+                renderQueue();
+                addGallery(url, 'Image ' + (i + 1));
+                refreshBtn();
+            }).catch(function (e) {
+                item.status = 'failed';
+                item.progress = e.message === 'Arrêt demandé' ? 'Arrêté' : 'Échec';
+                if (e.message !== 'Arrêt demandé') {
+                    state.failed++;
+                    debug('ERREUR image ' + (i + 1) + ' : ' + e.message);
+                }
+                renderQueue();
+                refreshBtn();
+            });
+        }).catch(function (e) {
+            item.status = 'failed';
+            item.progress = 'Échec';
+            state.failed++;
+            debug('ERREUR création image ' + (i + 1) + ' : ' + e.message);
+            renderQueue();
+            refreshBtn();
+        }).then(function () {
+            if (state.stop) return;
+            if (i < state.queue.length - 1) return sleep(CREATE_INTERVAL_MIN);
+        }).then(function () {
+            return createOne(i + 1);
+        });
+    }
+
+    createOne(0).then(function () {
+        state.running = false;
+        state.stop = false;
+        $('stopBtn').style.display = 'none';
+        refreshBtn();
+        debug('═══ FIN : ' + state.completed + ' OK, ' + state.failed + ' échecs ═══');
+        toast('✓ ' + state.completed + ' vidéo(s) créée(s)', 'ok');
+    });
+}
+
+function stopGeneration() {
+    state.stop = true;
+    toast('Arrêt demandé…', 'warn');
+}
+
+(function init() {
+    $('saveKeyBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        saveKey();
+    });
+    $('apiKey').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveKey(); }
+    });
+    $('uploadZone').addEventListener('click', function () { $('fileInput').click(); });
+    $('fileInput').addEventListener('change', function (e) {
+        handleFiles(e.target.files);
+        e.target.value = '';
+    });
+    $('uploadZone').addEventListener('dragover', function (e) { e.preventDefault(); });
+    $('uploadZone').addEventListener('drop', function (e) {
+        e.preventDefault();
+        handleFiles(e.dataTransfer.files);
+    });
+    $('durationSelect').addEventListener('change', function (e) {
+        state.duration = parseInt(e.target.value, 10);
+    });
+    $('framingSelect').addEventListener('change', function (e) {
+        state.framing = e.target.value;
+    });
+    $('intensitySelect').addEventListener('change', function (e) {
+        state.intensity = e.target.value;
+    });
+    $('generateBtn').addEventListener('click', startGeneration);
+    $('stopBtn').addEventListener('click', stopGeneration);
+
+    refreshKeyUI();
+    renderEffects();
+    renderThumbs();
+
+    console.log('✓ Atelier Vidéo prêt (v2 avec anti-cache).');
+})();
+</script>
+</body>
+</html>
